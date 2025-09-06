@@ -22,6 +22,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -70,10 +71,11 @@ public class RoomInfoServiceImpl extends ServiceImpl<RoomInfoMapper, RoomInfo>
 
     @Override
     public IPage<RoomItemVo> pageItem(IPage<RoomItemVo> page, RoomQueryVo queryVo) {
-        return roomInfoMapper.pageItem(page,queryVo);
+        return null;
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public RoomDetailVo getDetailById(Long id) {
         //查询缓存
         String key = RedisConstant.APP_ROOM_PREFIX + id;

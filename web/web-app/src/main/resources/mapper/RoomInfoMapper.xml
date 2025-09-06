@@ -18,55 +18,7 @@
         />
     </resultMap>
     <select id="pageItem" resultMap="RoomItemVoMP">
-        select ri.id,
-               ri.room_number,
-               ri.rent,
-               ai.id apartment_id,
-               ai.name,
-               ai.introduction,
-               ai.district_id,
-               ai.district_name,
-               ai.city_id,
-               ai.city_name,
-               ai.province_id,
-               ai.province_name,
-               ai.address_detail,
-               ai.latitude,
-               ai.longitude,
-               ai.phone,
-               ai.is_release
-        from room_info ri
-                 left join apartment_info ai on ri.apartment_id = ai.id and ai.is_deleted = 0
-        <where>
-            ri.is_deleted = 0
-            and ri.is_release = 1
-            and ri.id not in (select room_id
-                                from lease_agreement
-                                where is_deleted = 0
-                                and status in (2, 5))
-            <if test="queryVo.provinceId != null">
-                and ai.province_id = #{queryVo.provinceId}
-            </if>
-            <if test="queryVo.cityId != null">
-                and ai.city_id = #{queryVo.cityId}
-            </if>
-            <if test="queryVo.districtId != null">
-                and ai.district_id = #{queryVo.districtId}
-            </if>
-            <if test="queryVo.minRent != null and queryVo.maxRent != null">
-                and (ri.rent &gt;= #{queryVo.minRent} and ri.rent &lt;= #{queryVo.maxRent})
-            </if>
-            <if test="queryVo.paymentTypeId != null">
-                and ri.id in (select
-                            room_id
-                            from room_payment_type
-                            where is_deleted = 0
-                            and payment_type_id=#{queryVo.paymentTypeId})
-            </if>
-        </where>
-        <if test="queryVo.orderType == 'desc' or queryVo.orderType == 'asc'">
-            order by ri.rent ${queryVo.orderType}
-        </if>
+
     </select>
 
     <select id="selectGraphListByRoomID" resultType="com.lyc.lease.web.app.vo.graph.GraphVo">
@@ -99,6 +51,7 @@
           and apartment_id = #{id}
     </select>
 
+<!--    当前社区所有可带看房间的记录-->
     <select id="pageItemByApartmentId" resultMap="RoomItemVoMP">
         select ri.id,
                ri.room_number,

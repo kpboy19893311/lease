@@ -45,8 +45,6 @@ public class LoginServiceImpl implements LoginService {
         if (loginVo.getCaptchaCode() == null) {
             throw new LeaseException(ResultCodeEnum.APP_LOGIN_CODE_EMPTY);
         }
-        if (true)
-            throw new LeaseException(ResultCodeEnum.APP_LOGIN_PHONE_EMPTY);
         String code = redisTemplate.opsForValue().get(loginVo.getCaptchaKey());
         if (code == null) {
             throw new LeaseException(ResultCodeEnum.ADMIN_CAPTCHA_CODE_EXPIRED);

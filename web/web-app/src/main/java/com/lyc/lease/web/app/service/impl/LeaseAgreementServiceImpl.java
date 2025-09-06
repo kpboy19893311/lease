@@ -7,12 +7,16 @@ import com.lyc.lease.web.app.service.LeaseAgreementService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lyc.lease.web.app.vo.agreement.AgreementDetailVo;
 import com.lyc.lease.web.app.vo.agreement.AgreementItemVo;
+import com.lyc.lease.web.app.vo.apartment.ApartmentDetailVo;
 import com.lyc.lease.web.app.vo.graph.GraphVo;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+
+import static com.lyc.lease.common.constant.RedisConstant.APP_APARTMENT_PREFIX;
 
 /**
  * @author liubo
@@ -41,6 +45,9 @@ public class LeaseAgreementServiceImpl extends ServiceImpl<LeaseAgreementMapper,
     @Autowired
     LeaseTermMapper leaseTermMapper;
 
+    @Autowired
+    RedisTemplate redisTemplate;
+
     /**
      * 根据手机号查询租约基本信息列表
      *
@@ -60,38 +67,47 @@ public class LeaseAgreementServiceImpl extends ServiceImpl<LeaseAgreementMapper,
      */
     @Override
     public AgreementDetailVo getDetailById(Long id) {
-        //1.查询租约信息
-        LeaseAgreement leaseAgreement = leaseAgreementMapper.selectById(id);
-        if (leaseAgreement == null) {
-            return null;
+
+        //改造一下这个接口，获取公寓详细信息放到缓存里，加快接口响应。
+        String key = APP_APARTMENT_PREFIX + id;
+        Object object = redisTemplate.opsForValue().get(key);
+        if (object != null) {
+            return (AgreementDetailVo) object;
+        } else {
+            //1.查询租约信息
+            LeaseAgreement leaseAgreement = leaseAgreementMapper.selectById(id);
+            if (leaseAgreement == null) {
+                return null;
+            }
+            //2.查询公寓信息
+            ApartmentInfo apartmentInfo = apartmentInfoMapper.selectById(leaseAgreement.getApartmentId());
+
+            //3.查询房间信息
+            RoomInfo roomInfo = roomInfoMapper.selectById(leaseAgreement.getRoomId());
+
+            //4.查询图片信息
+            List<GraphVo> roomGraphVoList = graphInfoMapper.selectListByItemTypeAndId(ItemType.ROOM, leaseAgreement.getRoomId());
+            List<GraphVo> apartmentGraphVoList = graphInfoMapper.selectListByItemTypeAndId(ItemType.APARTMENT, leaseAgreement.getApartmentId());
+
+            //5.查询支付方式
+            PaymentType paymentType = paymentTypeMapper.selectById(leaseAgreement.getPaymentTypeId());
+
+            //6.查询租期
+            LeaseTerm leaseTerm = leaseTermMapper.selectById(leaseAgreement.getLeaseTermId());
+
+            AgreementDetailVo agreementDetailVo = new AgreementDetailVo();
+            BeanUtils.copyProperties(leaseAgreement, agreementDetailVo);
+            agreementDetailVo.setApartmentName(apartmentInfo.getName());
+            agreementDetailVo.setRoomNumber(roomInfo.getRoomNumber());
+            agreementDetailVo.setApartmentGraphVoList(apartmentGraphVoList);
+            agreementDetailVo.setRoomGraphVoList(roomGraphVoList);
+            agreementDetailVo.setPaymentTypeName(paymentType.getName());
+            agreementDetailVo.setLeaseTermMonthCount(leaseTerm.getMonthCount());
+            agreementDetailVo.setLeaseTermUnit(leaseTerm.getUnit());
+
+            redisTemplate.opsForValue().set(key, agreementDetailVo);
+            return agreementDetailVo;
         }
-        //2.查询公寓信息
-        ApartmentInfo apartmentInfo = apartmentInfoMapper.selectById(leaseAgreement.getApartmentId());
-
-        //3.查询房间信息
-        RoomInfo roomInfo = roomInfoMapper.selectById(leaseAgreement.getRoomId());
-
-        //4.查询图片信息
-        List<GraphVo> roomGraphVoList = graphInfoMapper.selectListByItemTypeAndId(ItemType.ROOM, leaseAgreement.getRoomId());
-        List<GraphVo> apartmentGraphVoList = graphInfoMapper.selectListByItemTypeAndId(ItemType.APARTMENT, leaseAgreement.getApartmentId());
-
-        //5.查询支付方式
-        PaymentType paymentType = paymentTypeMapper.selectById(leaseAgreement.getPaymentTypeId());
-
-        //6.查询租期
-        LeaseTerm leaseTerm = leaseTermMapper.selectById(leaseAgreement.getLeaseTermId());
-
-        AgreementDetailVo agreementDetailVo = new AgreementDetailVo();
-        BeanUtils.copyProperties(leaseAgreement, agreementDetailVo);
-        agreementDetailVo.setApartmentName(apartmentInfo.getName());
-        agreementDetailVo.setRoomNumber(roomInfo.getRoomNumber());
-        agreementDetailVo.setApartmentGraphVoList(apartmentGraphVoList);
-        agreementDetailVo.setRoomGraphVoList(roomGraphVoList);
-        agreementDetailVo.setPaymentTypeName(paymentType.getName());
-        agreementDetailVo.setLeaseTermMonthCount(leaseTerm.getMonthCount());
-        agreementDetailVo.setLeaseTermUnit(leaseTerm.getUnit());
-
-        return agreementDetailVo;
     }
 }
 

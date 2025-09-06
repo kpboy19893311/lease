@@ -18,7 +18,9 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -75,8 +77,27 @@ public class RoomInfoServiceImpl extends ServiceImpl<RoomInfoMapper, RoomInfo>
     @Autowired
     RedisTemplate<String,Object> redisTemplate;
 
+
+    /**
+     * 数据库的事务有四大特性：ACID
+     *  原子性：一个事务中的所有操作都必须成功，或者全部失败。
+     *  一致性：一个事务开始时，数据是istent，事务结束时，数据是istent。
+     *  持久性：一个事务结束时，所有数据都保持持久状态。
+     *  隔离型：多个并发事务之间不能相互干扰。
+     *
+     *  四大问题:
+     *  读已提交：
+     *  读未提交：
+     *  可重复读
+     *  串行化
+     *
+     * @param roomSubmitVo
+     */
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    //保证原子性，这个方法里面只要有一个操作失败，则事务就会回滚
     public void saveOrUpdateRoom(RoomSubmitVo roomSubmitVo) {
+
         boolean isUpdate = roomSubmitVo.getId() != null;
         super.saveOrUpdate(roomSubmitVo);
 
@@ -115,7 +136,7 @@ public class RoomInfoServiceImpl extends ServiceImpl<RoomInfoMapper, RoomInfo>
             roomLeaseTermService.remove(termQueryWrapper);
 
             //删除缓存
-            String key = RedisConstant.APP_ROOM_PREFIX+roomSubmitVo.getId();
+            String key = RedisConstant.APP_ROOM_PREFIX + roomSubmitVo.getId();
             redisTemplate.delete(key);
         }
 
@@ -188,6 +209,10 @@ public class RoomInfoServiceImpl extends ServiceImpl<RoomInfoMapper, RoomInfo>
             }
             roomLeaseTermService.saveBatch(roomLeaseTerms);
         }
+
+        //先删除缓存、再更新数据库、更新完数据库后再删除缓存，保证一直性
+        String key = RedisConstant.APP_ROOM_PREFIX + roomSubmitVo.getId();
+        redisTemplate.delete(key);
     }
 
     @Override

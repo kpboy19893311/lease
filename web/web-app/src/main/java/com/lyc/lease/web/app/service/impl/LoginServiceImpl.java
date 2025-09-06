@@ -63,6 +63,11 @@ public class LoginServiceImpl implements LoginService {
      */
     @Override
     public String login(LoginVo loginVo) {
+        //校验验证码和手机号是否为空；
+        //从Redis中获取验证码并比对，失败则抛异常；
+        //查询用户信息，不存在则新建并插入数据库；
+        //若用户被禁用则抛异常；
+        //最后生成并返回JWT令牌。
 
         if (loginVo.getCode()==null){
             throw new LeaseException(ResultCodeEnum.APP_LOGIN_CODE_EMPTY);

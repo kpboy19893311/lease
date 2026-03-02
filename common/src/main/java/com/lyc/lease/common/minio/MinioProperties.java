@@ -2,6 +2,7 @@ package com.lyc.lease.common.minio;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 /**
  * @ClassName MinioProperties
@@ -13,8 +14,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 //类属性应该映射到哪个字符串开头的属性
 //minio.*
-@Data
+
 @ConfigurationProperties(prefix = "minio")
+@Data
+@Component
 public class MinioProperties {
     //属性endpoint 自动映射到 minio.endpoint
     private String endpoint;
